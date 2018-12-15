@@ -1,0 +1,75 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(tidytext)
+library(rvest)
+```
+
+Define a function to pull data. If you do this on your own for a different site, you'll have to change the ".first-parrafo" line to whatever the CSS element is called for the text on your site.
+
+I use the Selector Gadget google chrome extension to find these and it works incredibly well. Hadley Wickham has a great tutorial on this at https://blog.rstudio.com/2014/11/24/rvest-easy-web-scraping-with-r/
+
+```{r, echo=FALSE}
+get_text <- function(url){
+  html_session(url) %>% 
+    html_nodes(".first-parrafo") %>% 
+    html_text() %>% 
+    data_frame()
+}
+```
+
+Here, list the URLs of each article you want to iterate on
+
+```{r, echo=FALSE}
+urls <- c("https://elcomercio.pe/peru/onpe-referendum-2018-local-votacion-votar-segunda-vuelta-consulta-noticia-579690", "https://elcomercio.pe/peru/probabilidad-ocurra-nino-costero-intenso-2019-minima-noticia-583772",
+"https://elcomercio.pe/peru/cajamarca/cajamarca-pnp-habria-identificado-asesinos-alcalde-electo-asuncion-noticia-583927",
+"https://elcomercio.pe/peru/padre-ugo-censi-significo-localidad-chacas-noticia-583812",
+"https://elcomercio.pe/peru/renuncia-jefe-osinfor-adscripcion-dicho-organismo-minam-noticia-587810",
+"https://elcomercio.pe/peru/piura/dictan-prision-preventiva-alcaldesa-electa-lobitos-otros-ocho-investigados-noticia-588077",
+"https://elcomercio.pe/peru/encuentro-presidente-martin-vizcarra-88-alcaldesas-electas-noticia-588115",
+"https://elcomercio.pe/opinion/editorial/reforma-laboral-vizcarra-martin-oliva-carlos-mef-editorial-apuesta-firme-noticia-587984")
+```
+
+Here we'll apply the scraping function over all the urls and collect the results in a data frame.
+
+I honestly barely understand the "apply" family of functions but I know they are a cleaner way of writing loops in R so I try to use them when I can. If someone can explain them to me in an easy way please do.
+
+```{r, echo=FALSE}
+# apply the "get_text" function we defined above to pull text from the list of urls
+text_list <- sapply(urls, get_text)
+
+
+# cast this list as a data frame
+df <- data.frame(matrix(unlist(text_list), byrow=T),stringsAsFactors=FALSE)
+
+
+# rename ugly text column
+df <- df %>% 
+  rename(txt = matrix.unlist.text_list...byrow...T.)
+```
+
+Now that we have a data frame of words, we can use the wonderful TidyText package. If you're interested in this kind of text analysis, I highly recommend https://www.tidytextmining.com.
+
+In just a couple lines of code we have the most common words in the dataset!
+```{r}
+top_words <- df %>%
+  unnest_tokens(word, txt) %>%   # break the text up by word
+  count(word, sort = T)
+```
+
+```{r}
+head(top_words, 10)
+```
+Now, i'll write this to a CSV and make the visualization in Tableau, because that's a quick way to make a simple, interactive vizualization
+```{r, eval=FALSE}
+top_words %>% 
+  write_csv("top_spanish_words.csv")
+```
+
+Thanks for reading! If you have any questions, feel free to email me at joe at residualthoughts dot com.
